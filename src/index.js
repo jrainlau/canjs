@@ -11,7 +11,7 @@
  */
 
 const { Parser } = require('acorn')
-const Evaluator = require('./evaluator')
+const NodeIterator = require('./iterator')
 const Scope = require('./scope')
 
 class Canjs {
@@ -19,7 +19,7 @@ class Canjs {
     this.code = code
     this.extraDeclaration = extraDeclaration
     this.ast = Parser.parse(code)
-    this.evaluator = null
+    this.nodeIterator = null
     this.init()
   }
 
@@ -28,11 +28,11 @@ class Canjs {
     Object.keys(this.extraDeclaration).forEach((key) => {
       globalScope.addDeclaration(key, this.extraDeclaration[key])
     })
-    this.evaluator = new Evaluator(null, globalScope)
+    this.nodeIterator = new NodeIterator(null, globalScope)
   }
 
   run () {
-    return this.evaluator.evaluate(this.ast)
+    return this.nodeIterator.traverse(this.ast)
   }
 }
 

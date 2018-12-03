@@ -7,51 +7,51 @@ const Signal = require('../signal')
 const { MemberValue } = require('../value')
 
 const NodeHandler = {
-  Program (evaluator) {
-    for (const node of evaluator.node.body) {
-      evaluator.evaluate(node)
+  Program (nodeIterator) {
+    for (const node of nodeIterator.node.body) {
+      nodeIterator.traverse(node)
     }
   },
-  VariableDeclaration (evaluator) {
-    const kind = evaluator.node.kind
-    for (const declaration of evaluator.node.declarations) {
+  VariableDeclaration (nodeIterator) {
+    const kind = nodeIterator.node.kind
+    for (const declaration of nodeIterator.node.declarations) {
       const { name } = declaration.id
-      const value = declaration.init ? evaluator.evaluate(declaration.init) : undefined
+      const value = declaration.init ? nodeIterator.traverse(declaration.init) : undefined
       // 在作用域当中定义变量
-      evaluator.scope.declare(name, value, kind)
+      nodeIterator.scope.declare(name, value, kind)
     }
   },
-  Identifier (evaluator) {
-    if (evaluator.node.name === 'undefined') {
+  Identifier (nodeIterator) {
+    if (nodeIterator.node.name === 'undefined') {
       return undefined
     }
-    return evaluator.scope.get(evaluator.node.name).value
+    return nodeIterator.scope.get(nodeIterator.node.name).value
   },
-  Literal (evaluator) {
-    return evaluator.node.value
+  Literal (nodeIterator) {
+    return nodeIterator.node.value
   },
 
-  ExpressionStatement (evaluator) {
-    return evaluator.evaluate(evaluator.node.expression)
+  ExpressionStatement (nodeIterator) {
+    return nodeIterator.traverse(nodeIterator.node.expression)
   },
-  CallExpression (evaluator) {
-    const func = evaluator.evaluate(evaluator.node.callee)
-    const args = evaluator.node.arguments.map(arg => evaluator.evaluate(arg))
+  CallExpression (nodeIterator) {
+    const func = nodeIterator.traverse(nodeIterator.node.callee)
+    const args = nodeIterator.node.arguments.map(arg => nodeIterator.traverse(arg))
 
     let value
-    if (evaluator.node.callee.type === 'MemberExpression') {
-      value = evaluator.evaluate(evaluator.node.callee.object)
+    if (nodeIterator.node.callee.type === 'MemberExpression') {
+      value = nodeIterator.traverse(nodeIterator.node.callee.object)
     }
     return func.apply(value, args)
   },
-  MemberExpression (evaluator) {
-    const obj = evaluator.evaluate(evaluator.node.object)
-    const name = evaluator.node.property.name
+  MemberExpression (nodeIterator) {
+    const obj = nodeIterator.traverse(nodeIterator.node.object)
+    const name = nodeIterator.node.property.name
     return obj[name]
   },
-  ObjectExpression (evaluator) {
+  ObjectExpression (nodeIterator) {
     const obj = {}
-    for (const prop of evaluator.node.properties) {
+    for (const prop of nodeIterator.node.properties) {
       let key
       if (prop.key.type === 'Literal') {
         key = `${prop.key.value}`
@@ -60,57 +60,57 @@ const NodeHandler = {
       } else {
         throw new Error(`canjs: [ObjectExpression] Unsupported property key type "${prop.key.type}"`)
       }
-      obj[key] = evaluator.evaluate(prop.value)
+      obj[key] = nodeIterator.traverse(prop.value)
     }
     return obj
   },
-  ArrayExpression (evaluator) {
-    return evaluator.node.elements.map(ele => evaluator.evaluate(ele))
+  ArrayExpression (nodeIterator) {
+    return nodeIterator.node.elements.map(ele => nodeIterator.traverse(ele))
   },
 
-  BlockStatement (evaluator) {
+  BlockStatement (nodeIterator) {
     let scope
     /**
      * 判断是否需要继承父级作用域
      * 若不需要，则单独新建一个块级作用域
      * 若需要，则继承之，于是便可以在当前作用域直接获取父级作用域的变量
      */
-    if (!evaluator.scope.inheritParentScope) {
-      scope = evaluator.createScope('block')
+    if (!nodeIterator.scope.inheritParentScope) {
+      scope = nodeIterator.createScope('block')
     } else {
-      scope = evaluator.scope
+      scope = nodeIterator.scope
       scope.inheritParentScope = false
     }
 
     // 处理块级节点内的每一个节点
-    for (const node of evaluator.node.body) {
+    for (const node of nodeIterator.node.body) {
       if (node.type === 'VariableDeclaration' && node.kind === 'var') {
         for (const declaration of node.declarations) {
           scope.varDeclare(declaration.id.name)
         }
       } else if (node.type === 'FunctionDeclaration') {
-        evaluator.evaluate(node, { scope })
+        nodeIterator.traverse(node, { scope })
       }
     }
 
     // 提取关键字（return, break, continue）
-    for (const node of evaluator.node.body) {
+    for (const node of nodeIterator.node.body) {
       if (node.type === 'FunctionDeclaration') {
         continue
       }
-      const signal = evaluator.evaluate(node, { scope })
+      const signal = nodeIterator.traverse(node, { scope })
       if (Signal.isSignal(signal)) {
         return signal
       }
     }
   },
-  FunctionDeclaration (evaluator) {
-    const fn = NodeHandler.FunctionExpression(evaluator)
-    evaluator.scope.varDeclare(evaluator.node.id.name, fn)
+  FunctionDeclaration (nodeIterator) {
+    const fn = NodeHandler.FunctionExpression(nodeIterator)
+    nodeIterator.scope.varDeclare(nodeIterator.node.id.name, fn)
     return fn    
   },
-  FunctionExpression (evaluator) {
-    const node = evaluator.node
+  FunctionExpression (nodeIterator) {
+    const node = nodeIterator.node
     /**
      * 定义函数需要先为其定义一个函数作用域，且允许继承腹肌作用域
      * 注册`this`, `arguments`和形参到作用域的变量空间
@@ -118,7 +118,7 @@ const NodeHandler = {
      * 定义函数名和长度
      */
     const fn = function () {
-      const scope = evaluator.createScope('function', true)
+      const scope = nodeIterator.createScope('function', true)
       scope.constDeclare('this', this)
       scope.constDeclare('arguments', arguments)
 
@@ -127,7 +127,7 @@ const NodeHandler = {
         scope.varDeclare(name, arguments[index])
       })
 
-      const signal = evaluator.evaluate(node.body, { scope })
+      const signal = nodeIterator.traverse(node.body, { scope })
       if (Signal.isReturn(signal)) {
         return signal.value
       }
@@ -140,27 +140,27 @@ const NodeHandler = {
 
     return fn
   },
-  ThisExpression (evaluator) {
-    const value = evaluator.scope.get('this')
+  ThisExpression (nodeIterator) {
+    const value = nodeIterator.scope.get('this')
     return value ? value.value : null
   },
-  NewExpression (evaluator) {
-    const func = evaluator.evaluate(evaluator.node.callee)
-    const args = evaluator.node.arguments.map(arg => evaluator.evaluate(arg))
+  NewExpression (nodeIterator) {
+    const func = nodeIterator.traverse(nodeIterator.node.callee)
+    const args = nodeIterator.node.arguments.map(arg => nodeIterator.traverse(arg))
     return new (func.bind(null, ...args))
   },
 
-  UpdateExpression (evaluator) {
-    let { value } = evaluator.scope.get(evaluator.node.argument.name)
-    if (evaluator.node.operator === '++') {
-      evaluator.node.prefix ? ++value : value++
+  UpdateExpression (nodeIterator) {
+    let { value } = nodeIterator.scope.get(nodeIterator.node.argument.name)
+    if (nodeIterator.node.operator === '++') {
+      nodeIterator.node.prefix ? ++value : value++
     } else {
-      evaluator.node.prefix ? --value : value--
+      nodeIterator.node.prefix ? --value : value--
     }
-    evaluator.scope.set(evaluator.node.argument.name, value)
+    nodeIterator.scope.set(nodeIterator.node.argument.name, value)
     return value
   },
-  AssignmentExpressionOperatorEvaluateMap: {
+  AssignmentExpressionOperatortraverseMap: {
     '=': (memberValue, value) => memberValue.obj[memberValue.name] = value,
     '+=': (memberValue, value) => memberValue.obj[memberValue.name] += value,
     '-=': (memberValue, value) => memberValue.obj[memberValue.name] -= value,
@@ -175,38 +175,38 @@ const NodeHandler = {
     '^=': (memberValue, value) => memberValue.obj[memberValue.name] ^= value,
     '&=': (memberValue, value) => memberValue.obj[memberValue.name] &= value
   },
-  AssignmentExpression (evaluator) {
-    const node = evaluator.node
-    const value = getIdentifierOrMemberExpressionValue(node.left, evaluator)
-    return NodeHandler.AssignmentExpressionOperatorEvaluateMap[node.operator](value, evaluator.evaluate(node.right))
+  AssignmentExpression (nodeIterator) {
+    const node = nodeIterator.node
+    const value = getIdentifierOrMemberExpressionValue(node.left, nodeIterator)
+    return NodeHandler.AssignmentExpressionOperatortraverseMap[node.operator](value, nodeIterator.traverse(node.right))
   },
-  UnaryExpressionOperatorEvaluateMap: {
-    '-': (evaluator) => -evaluator.evaluate(evaluator.node.argument),
-    '+': (evaluator) => +evaluator.evaluate(evaluator.node.argument),
-    '!': (evaluator) => !evaluator.evaluate(evaluator.node.argument),
-    '~': (evaluator) => ~evaluator.evaluate(evaluator.node.argument),
-    'typeof': (evaluator) => {
-      if (evaluator.node.argument.type === 'Identifier') {
+  UnaryExpressionOperatortraverseMap: {
+    '-': (nodeIterator) => -nodeIterator.traverse(nodeIterator.node.argument),
+    '+': (nodeIterator) => +nodeIterator.traverse(nodeIterator.node.argument),
+    '!': (nodeIterator) => !nodeIterator.traverse(nodeIterator.node.argument),
+    '~': (nodeIterator) => ~nodeIterator.traverse(nodeIterator.node.argument),
+    'typeof': (nodeIterator) => {
+      if (nodeIterator.node.argument.type === 'Identifier') {
         try {
-          const value = evaluator.scope.get(evaluator.node.argument.name)
+          const value = nodeIterator.scope.get(nodeIterator.node.argument.name)
           return value ? typeof value.value : 'undefined'
         } catch (err) {
-          if (err.message === `${evaluator.node.argument.name} is not defined`) {
+          if (err.message === `${nodeIterator.node.argument.name} is not defined`) {
             return 'undefined'
           } else {
             throw err
           }
         }
       } else {
-        return typeof evaluator.evaluate(evaluator.node.argument)
+        return typeof nodeIterator.traverse(nodeIterator.node.argument)
       }
     },
-    'void': (evaluator) => void evaluator.evaluate(evaluator.node.argument),
-    'delete': (evaluator) => {
-      const argument = evaluator.node.argument
+    'void': (nodeIterator) => void nodeIterator.traverse(nodeIterator.node.argument),
+    'delete': (nodeIterator) => {
+      const argument = nodeIterator.node.argument
       if (argument.type === 'MemberExpression') {
-        const obj = evaluator.evaluate(argument.object)
-        const name = getPropertyName(argument, evaluator)
+        const obj = nodeIterator.traverse(argument.object)
+        const name = getPropertyName(argument, nodeIterator)
         return delete obj[name]
       } else if (argument.type === 'Identifier') {
         return false
@@ -215,10 +215,10 @@ const NodeHandler = {
       }
     }
   },
-  UnaryExpression (evaluator) {
-    return NodeHandler.UnaryExpressionOperatorEvaluateMap[evaluator.node.operator](evaluator)
+  UnaryExpression (nodeIterator) {
+    return NodeHandler.UnaryExpressionOperatortraverseMap[nodeIterator.node.operator](nodeIterator)
   },
-  BinaryExpressionOperatorEvaluateMap: {
+  BinaryExpressionOperatortraverseMap: {
     '==': (a, b) => a == b,
     '!=': (a, b) => a != b,
     '===': (a, b) => a === b,
@@ -242,34 +242,34 @@ const NodeHandler = {
     'in': (a, b) => a in b,
     'instanceof': (a, b) => a instanceof b
   },
-  BinaryExpression (evaluator) {
-    const a = evaluator.evaluate(evaluator.node.left)
-    const b = evaluator.evaluate(evaluator.node.right)
-    return NodeHandler.BinaryExpressionOperatorEvaluateMap[evaluator.node.operator](a, b)
+  BinaryExpression (nodeIterator) {
+    const a = nodeIterator.traverse(nodeIterator.node.left)
+    const b = nodeIterator.traverse(nodeIterator.node.right)
+    return NodeHandler.BinaryExpressionOperatortraverseMap[nodeIterator.node.operator](a, b)
   },
-  LogicalExpressionOperatorEvaluateMap: {
+  LogicalExpressionOperatortraverseMap: {
     '||': (a, b) => a || b,
     '&&': (a, b) => a && b
   },
-  LogicalExpression (evaluator) {
-    const a = evaluator.evaluate(evaluator.node.left)
-    const b = evaluator.evaluate(evaluator.node.right)
-    return NodeHandler.LogicalExpressionOperatorEvaluateMap[evaluator.node.operator](a, b)
+  LogicalExpression (nodeIterator) {
+    const a = nodeIterator.traverse(nodeIterator.node.left)
+    const b = nodeIterator.traverse(nodeIterator.node.right)
+    return NodeHandler.LogicalExpressionOperatortraverseMap[nodeIterator.node.operator](a, b)
   },
 
-  ForStatement (evaluator) {
-    const node = evaluator.node
-    let scope = evaluator.scope
+  ForStatement (nodeIterator) {
+    const node = nodeIterator.node
+    let scope = nodeIterator.scope
     if (node.init && node.init.type === 'VariableDeclaration' && node.init.kind !== 'var') {
-      scope = evaluator.createScope('block')
+      scope = nodeIterator.createScope('block')
     }
 
     for (
-      node.init && evaluator.evaluate(node.init, { scope });
-      node.test ? evaluator.evaluate(node.test, { scope }) : true;
-      node.update && evaluator.evaluate(node.update, { scope })
+      node.init && nodeIterator.traverse(node.init, { scope });
+      node.test ? nodeIterator.traverse(node.test, { scope }) : true;
+      node.update && nodeIterator.traverse(node.update, { scope })
     ) {
-      const signal = evaluator.evaluate(node.body, { scope })
+      const signal = nodeIterator.traverse(node.body, { scope })
       
       if (Signal.isBreak(signal)) {
         break
@@ -280,9 +280,9 @@ const NodeHandler = {
       }
     }
   },
-  ForInStatement (evaluator) {
-    const { left, right, body } = evaluator.node
-    let scope = evaluator.scope
+  ForInStatement (nodeIterator) {
+    const { left, right, body } = nodeIterator.node
+    let scope = nodeIterator.scope
 
     let value
     if (left.type === 'VariableDeclaration') {
@@ -294,9 +294,9 @@ const NodeHandler = {
       throw new Error(`canjs: [ForInStatement] Unsupported left type "${left.type}"`)
     }
 
-    for (const key in evaluator.evaluate(right)) {
+    for (const key in nodeIterator.traverse(right)) {
       value.value = key
-      const signal = evaluator.evaluate(body, { scope })
+      const signal = nodeIterator.traverse(body, { scope })
 
       if (Signal.isBreak(signal)) {
         break
@@ -307,9 +307,9 @@ const NodeHandler = {
       }
     }
   },
-  WhileStatement (evaluator) {
-    while (evaluator.evaluate(evaluator.node.test)) {
-      const signal = evaluator.evaluate(evaluator.node.body)
+  WhileStatement (nodeIterator) {
+    while (nodeIterator.traverse(nodeIterator.node.test)) {
+      const signal = nodeIterator.traverse(nodeIterator.node.body)
       
       if (Signal.isBreak(signal)) {
         break
@@ -320,9 +320,9 @@ const NodeHandler = {
       }
     }
   },
-  DoWhileStatement (evaluator) {
+  DoWhileStatement (nodeIterator) {
     do {
-      const signal = evaluator.evaluate(evaluator.node.body)
+      const signal = nodeIterator.traverse(nodeIterator.node.body)
       
       if (Signal.isBreak(signal)) {
         break
@@ -331,44 +331,44 @@ const NodeHandler = {
       } else if (Signal.isReturn(signal)) {
         return signal
       }
-    } while (evaluator.evaluate(evaluator.node.test))
+    } while (nodeIterator.traverse(nodeIterator.node.test))
   },
 
-  ReturnStatement (evaluator) {
+  ReturnStatement (nodeIterator) {
     let value
-    if (evaluator.node.argument) {
-      value = evaluator.evaluate(evaluator.node.argument)
+    if (nodeIterator.node.argument) {
+      value = nodeIterator.traverse(nodeIterator.node.argument)
     }
     return Signal.Return(value)
   },
-  BreakStatement (evaluator) {
+  BreakStatement (nodeIterator) {
     let label
-    if (evaluator.node.label) {
-      label = evaluator.node.label.name
+    if (nodeIterator.node.label) {
+      label = nodeIterator.node.label.name
     }
     return Signal.Break(label)
   },
-  ContinueStatement (evaluator) {
+  ContinueStatement (nodeIterator) {
     let label
-    if (evaluator.node.label) {
-      label = evaluator.node.label.name
+    if (nodeIterator.node.label) {
+      label = nodeIterator.node.label.name
     }
     return Signal.Continue(label)
   },
 
-  IfStatement (evaluator) {
-    if (evaluator.evaluate(evaluator.node.test)) {
-      return evaluator.evaluate(evaluator.node.consequent)
-    } else if (evaluator.node.alternate) {
-      return evaluator.evaluate(evaluator.node.alternate)
+  IfStatement (nodeIterator) {
+    if (nodeIterator.traverse(nodeIterator.node.test)) {
+      return nodeIterator.traverse(nodeIterator.node.consequent)
+    } else if (nodeIterator.node.alternate) {
+      return nodeIterator.traverse(nodeIterator.node.alternate)
     }
   },
-  SwitchStatement (evaluator) {
-    const discriminant = evaluator.evaluate(evaluator.node.discriminant)
+  SwitchStatement (nodeIterator) {
+    const discriminant = nodeIterator.traverse(nodeIterator.node.discriminant)
     
-    for (const theCase of evaluator.node.cases) {
-      if (!theCase.test || discriminant === evaluator.evaluate(theCase.test)) {
-        const signal = evaluator.evaluate(theCase)
+    for (const theCase of nodeIterator.node.cases) {
+      if (!theCase.test || discriminant === nodeIterator.traverse(theCase.test)) {
+        const signal = nodeIterator.traverse(theCase)
 
         if (Signal.isBreak(signal)) {
           break
@@ -380,60 +380,60 @@ const NodeHandler = {
       }
     }
   },
-  SwitchCase (evaluator) {
-    for (const node of evaluator.node.consequent) {
-      const signal = evaluator.evaluate(node)
+  SwitchCase (nodeIterator) {
+    for (const node of nodeIterator.node.consequent) {
+      const signal = nodeIterator.traverse(node)
       if (Signal.isSignal(signal)) {
         return signal
       }
     }
   },
-  ConditionalExpression (evaluator) {
-    return evaluator.evaluate(evaluator.node.test)
-      ? evaluator.evaluate(evaluator.node.consequent)
-      : evaluator.evaluate(evaluator.node.alternate)
+  ConditionalExpression (nodeIterator) {
+    return nodeIterator.traverse(nodeIterator.node.test)
+      ? nodeIterator.traverse(nodeIterator.node.consequent)
+      : nodeIterator.traverse(nodeIterator.node.alternate)
   },
 
-  ThrowStatement(evaluator) {
-    throw evaluator.evaluate(evaluator.node.argument)
+  ThrowStatement(nodeIterator) {
+    throw nodeIterator.traverse(nodeIterator.node.argument)
   },
-  TryStatement(evaluator) {
-    const { block, handler, finalizer } = evaluator.node
+  TryStatement(nodeIterator) {
+    const { block, handler, finalizer } = nodeIterator.node
     try {
-      return evaluator.evaluate(block)
+      return nodeIterator.traverse(block)
     } catch (err) {
       if (handler) {
         const param = handler.param
-        const scope = evaluator.createScope('block', true)
+        const scope = nodeIterator.createScope('block', true)
         scope.letDeclare(param.name, err)
-        return evaluator.evaluate(handler, { scope })
+        return nodeIterator.traverse(handler, { scope })
       }
       throw err
     } finally {
       if (finalizer) {
-        return evaluator.evaluate(finalizer)
+        return nodeIterator.traverse(finalizer)
       }
     }
   },
-  CatchClause(evaluator) {
-    return evaluator.evaluate(evaluator.node.body);
+  CatchClause(nodeIterator) {
+    return nodeIterator.traverse(nodeIterator.node.body);
   }
 }
 
-function getPropertyName (node, evaluator) {
+function getPropertyName (node, nodeIterator) {
   if (node.computed) {
-    return evaluator.evaluate(node.property)
+    return nodeIterator.traverse(node.property)
   } else {
     return node.property.name
   }
 }
 
-function getIdentifierOrMemberExpressionValue(node, evaluator) {
+function getIdentifierOrMemberExpressionValue(node, nodeIterator) {
   if (node.type === 'Identifier') {
-    return evaluator.scope.get(node.name)
+    return nodeIterator.scope.get(node.name)
   } else if (node.type === 'MemberExpression') {
-    const obj = evaluator.evaluate(node.object)
-    const name = getPropertyName(node, evaluator)
+    const obj = nodeIterator.traverse(node.object)
+    const name = getPropertyName(node, nodeIterator)
     return new MemberValue(obj, name)
   } else {
     throw new Error(`canjs: Not support to get value of node type "${node.type}"`)
