@@ -30,10 +30,8 @@ class NodeIterator {
     return _eval(nodeIterator)
   }
 
-  createScope (blockType = 'block', inheritParentScope = false) {
-    const scope = new Scope(blockType, this.scope)
-    scope.inheritParentScope = inheritParentScope
-    return scope
+  createScope (blockType = 'block') {
+    return new Scope(blockType, this.scope)
   }
 }
 

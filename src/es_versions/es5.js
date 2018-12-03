@@ -18,7 +18,11 @@ const NodeHandler = {
       const { name } = declaration.id
       const value = declaration.init ? nodeIterator.traverse(declaration.init) : undefined
       // 在作用域当中定义变量
-      nodeIterator.scope.declare(name, value, kind)
+      if (nodeIterator.scope.type === 'block' && kind === 'var') {
+        nodeIterator.scope.parentScope.declare(name, value, kind)
+      } else {
+        nodeIterator.scope.declare(name, value, kind)
+      }
     }
   },
   Identifier (nodeIterator) {
@@ -69,24 +73,13 @@ const NodeHandler = {
   },
 
   BlockStatement (nodeIterator) {
-    let scope
-    /**
-     * 判断是否需要继承父级作用域
-     * 若不需要，则单独新建一个块级作用域
-     * 若需要，则继承之，于是便可以在当前作用域直接获取父级作用域的变量
-     */
-    if (!nodeIterator.scope.inheritParentScope) {
-      scope = nodeIterator.createScope('block')
-    } else {
-      scope = nodeIterator.scope
-      scope.inheritParentScope = false
-    }
+    let scope = nodeIterator.createScope('block')
 
     // 处理块级节点内的每一个节点
     for (const node of nodeIterator.node.body) {
       if (node.type === 'VariableDeclaration' && node.kind === 'var') {
         for (const declaration of node.declarations) {
-          scope.varDeclare(declaration.id.name)
+          scope.declare(declaration.id.name, declaration.init.value, node.kind)
         }
       } else if (node.type === 'FunctionDeclaration') {
         nodeIterator.traverse(node, { scope })
@@ -118,7 +111,7 @@ const NodeHandler = {
      * 定义函数名和长度
      */
     const fn = function () {
-      const scope = nodeIterator.createScope('function', true)
+      const scope = nodeIterator.createScope('function')
       scope.constDeclare('this', this)
       scope.constDeclare('arguments', arguments)
 
@@ -404,7 +397,7 @@ const NodeHandler = {
     } catch (err) {
       if (handler) {
         const param = handler.param
-        const scope = nodeIterator.createScope('block', true)
+        const scope = nodeIterator.createScope('block')
         scope.letDeclare(param.name, err)
         return nodeIterator.traverse(handler, { scope })
       }
@@ -430,7 +423,9 @@ function getPropertyName (node, nodeIterator) {
 
 function getIdentifierOrMemberExpressionValue(node, nodeIterator) {
   if (node.type === 'Identifier') {
-    return nodeIterator.scope.get(node.name)
+    const obj = {}
+    obj[node.name] = nodeIterator.scope.get(node.name)
+    return new MemberValue(obj, node.name)
   } else if (node.type === 'MemberExpression') {
     const obj = nodeIterator.traverse(node.object)
     const name = getPropertyName(node, nodeIterator)
