@@ -1,7 +1,7 @@
 {
   "name": "canjs",
   "version": "1.0.0",
-  "description": "",
+  "description": "CanJS is a javascript interpreter, which can run JS code in JS.",
   "main": "index.js",
   "scripts": {
     "build": "parcel build ./src/index.js"
@@ -11,15 +11,13 @@
     "url": "git+https://github.com/jrainlau/canjs.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "JrainLau",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/jrainlau/canjs/issues"
   },
   "homepage": "https://github.com/jrainlau/canjs#readme",
   "dependencies": {
-    "acorn": "^6.0.4",
-    "babel-types": "^6.26.0",
-    "babylon": "^6.18.0"
+    "acorn": "^6.0.4"
   }
 }
