@@ -1,6 +1,6 @@
 /**
  * @author Jrainlau
- * @desc 节点解析器，递归解析AST内的每一个节点
+ * @desc 节点遍历器，递归遍历AST内的每一个节点并调用对应的方法进行解析
  * 
  * @class
  * 
