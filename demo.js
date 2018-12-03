@@ -16,7 +16,7 @@ new Canjs(`
 let x = 1
 {
   let y = 2
-  console.log(y)
+  console.log(x + y)
 }
-console.log(1)
+console.log(x)
 `).run()
