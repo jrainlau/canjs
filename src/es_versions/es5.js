@@ -154,19 +154,19 @@ const NodeHandler = {
     return value
   },
   AssignmentExpressionOperatortraverseMap: {
-    '=': (memberValue, value) => memberValue.obj[memberValue.name] = value,
-    '+=': (memberValue, value) => memberValue.obj[memberValue.name] += value,
-    '-=': (memberValue, value) => memberValue.obj[memberValue.name] -= value,
-    '*=': (memberValue, value) => memberValue.obj[memberValue.name] *= value,
-    '/=': (memberValue, value) => memberValue.obj[memberValue.name] /= value,
-    '%=': (memberValue, value) => memberValue.obj[memberValue.name] %= value,
+    '=': (value, v) => value instanceof MemberValue ? value.obj[value.name] = value : value.value = v,
+    '+=': (value, v) => value instanceof MemberValue ? value.obj[value.name] += value : value.value += v,
+    '-=': (value, v) => value instanceof MemberValue ? value.obj[value.name] -= value : value.value -= v,
+    '*=': (value, v) => value instanceof MemberValue ? value.obj[value.name] *= value : value.value *= v,
+    '/=': (value, v) => value instanceof MemberValue ? value.obj[value.name] /= value : value.value /= v,
+    '%=': (value, v) => value instanceof MemberValue ? value.obj[value.name] %= value : value.value %= v,
     '**=': () => { throw new Error('canjs: es5 doen\'t supports operator "**=') },
-    '<<=': (memberValue, value) => memberValue.obj[memberValue.name] <<= value,
-    '>>=': (memberValue, value) => memberValue.obj[memberValue.name] >>= value,
-    '>>>=': (memberValue, value) => memberValue.obj[memberValue.name] >>>= value,
-    '|=': (memberValue, value) => memberValue.obj[memberValue.name] |= value,
-    '^=': (memberValue, value) => memberValue.obj[memberValue.name] ^= value,
-    '&=': (memberValue, value) => memberValue.obj[memberValue.name] &= value
+    '<<=': (value, v) => value instanceof MemberValue ? value.obj[value.name] <<= value : value.value <<= v,
+    '>>=': (value, v) => value instanceof MemberValue ? value.obj[value.name] >>= value : value.value >>= v,
+    '>>>=': (value, v) => value instanceof MemberValue ? value.obj[value.name] >>>= value : value.value >>>= v,
+    '|=': (value, v) => value instanceof MemberValue ? value.obj[value.name] |= value : value.value |= v,
+    '^=': (value, v) => value instanceof MemberValue ? value.obj[value.name] ^= value : value.value ^= v,
+    '&=': (value, v) => value instanceof MemberValue ? value.obj[value.name] &= value : value.value &= v
   },
   AssignmentExpression (nodeIterator) {
     const node = nodeIterator.node
@@ -423,9 +423,7 @@ function getPropertyName (node, nodeIterator) {
 
 function getIdentifierOrMemberExpressionValue(node, nodeIterator) {
   if (node.type === 'Identifier') {
-    const obj = {}
-    obj[node.name] = nodeIterator.scope.get(node.name)
-    return new MemberValue(obj, node.name)
+    return nodeIterator.scope.get(node.name)
   } else if (node.type === 'MemberExpression') {
     const obj = nodeIterator.traverse(node.object)
     const name = getPropertyName(node, nodeIterator)
