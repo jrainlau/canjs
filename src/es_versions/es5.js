@@ -1,3 +1,8 @@
+/**
+ * @author Jrainlau
+ * @desc 节点处理器，处理AST当中的节点
+ */
+
 const Signal = require('../signal')
 const { MemberValue } = require('../value')
 
