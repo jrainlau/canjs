@@ -105,10 +105,10 @@ const NodeHandler = {
   FunctionExpression (nodeIterator) {
     const node = nodeIterator.node
     /**
-     * 定义函数需要先为其定义一个函数作用域，且允许继承腹肌作用域
-     * 注册`this`, `arguments`和形参到作用域的变量空间
-     * 检查return关键字
-     * 定义函数名和长度
+     * 1、定义函数需要先为其定义一个函数作用域，且允许继承父级作用域
+     * 2、注册`this`, `arguments`和形参到作用域的变量空间
+     * 3、检查return关键字
+     * 4、定义函数名和长度
      */
     const fn = function () {
       const scope = nodeIterator.createScope('function')
