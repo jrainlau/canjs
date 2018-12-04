@@ -15,12 +15,12 @@ new Canjs(`
 `).run()
 ```
 
-`CanJS` uses ES5 standard library, but you can also provide custom variable to it:
+`CanJS` uses ES5 standard library, but you can also provide custom variables to it:
 ```javascript
 const Canjs = require('Canjs')
 
 const wx = {
-  name: wx
+  name: 'wx'
 }
 
 new Canjs(`
