@@ -79,7 +79,11 @@ const NodeHandler = {
     for (const node of nodeIterator.node.body) {
       if (node.type === 'VariableDeclaration' && node.kind === 'var') {
         for (const declaration of node.declarations) {
-          scope.declare(declaration.id.name, declaration.init.value, node.kind)
+          if (declaration.init) {
+            scope.declare(declaration.id.name, nodeIterator.traverse(declaration.init, { scope }), node.kind)
+          } else {
+            scope.declare(declaration.id.name, null, node.kind)
+          }
         }
       } else if (node.type === 'FunctionDeclaration') {
         nodeIterator.traverse(node, { scope })
