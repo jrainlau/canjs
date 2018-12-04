@@ -82,7 +82,7 @@ const NodeHandler = {
           if (declaration.init) {
             scope.declare(declaration.id.name, nodeIterator.traverse(declaration.init, { scope }), node.kind)
           } else {
-            scope.declare(declaration.id.name, null, node.kind)
+            scope.declare(declaration.id.name, undefined, node.kind)
           }
         }
       } else if (node.type === 'FunctionDeclaration') {
