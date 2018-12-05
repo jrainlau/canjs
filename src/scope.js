@@ -40,6 +40,8 @@ class Scope {
       this.declaration[name].set(value)
     } else if (this.parentScope) {
       this.parentScope.set(name, value)
+    } else if (this.globalDeclaration[name]) {
+      return this.globalDeclaration.set(name, value)
     } else {
       throw new ReferenceError(`${name} is not defined`)
     }
