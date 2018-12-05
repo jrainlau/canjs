@@ -139,7 +139,7 @@ const NodeHandler = {
   },
   ThisExpression (nodeIterator) {
     const value = nodeIterator.scope.get('this')
-    return value ? value.v : null
+    return value ? value.value : null
   },
   NewExpression (nodeIterator) {
     const func = nodeIterator.traverse(nodeIterator.node.callee)
@@ -150,9 +150,9 @@ const NodeHandler = {
   UpdateExpression (nodeIterator) {
     let { value } = nodeIterator.scope.get(nodeIterator.node.argument.name)
     if (nodeIterator.node.operator === '++') {
-      nodeIterator.node.prefix ? ++v : value++
+      nodeIterator.node.prefix ? ++value : value++
     } else {
-      nodeIterator.node.prefix ? --v : value--
+      nodeIterator.node.prefix ? --value : value--
     }
     nodeIterator.scope.set(nodeIterator.node.argument.name, value)
     return value
@@ -186,7 +186,7 @@ const NodeHandler = {
       if (nodeIterator.node.argument.type === 'Identifier') {
         try {
           const value = nodeIterator.scope.get(nodeIterator.node.argument.name)
-          return value ? typeof value.v : 'undefined'
+          return value ? typeof value.value : 'undefined'
         } catch (err) {
           if (err.message === `${nodeIterator.node.argument.name} is not defined`) {
             return 'undefined'
