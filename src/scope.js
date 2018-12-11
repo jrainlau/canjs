@@ -65,8 +65,8 @@ class Scope {
     while (scope.parentScope && scope.type !== 'function') {
       scope = scope.parentScope
     }
-    this.declaration[name] = new SimpleValue(value, 'var')
-    return this.declaration[name]
+    scope.declaration[name] = new SimpleValue(value, 'var')
+    return scope.declaration[name]
   }
 
   letDeclare (name, value) {
