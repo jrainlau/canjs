@@ -4,7 +4,7 @@
   "description": "CanJS is a javascript interpreter, which can run JS code in JS.",
   "main": "index.js",
   "scripts": {
-    "build": "parcel build ./index.js"
+    "build": "parcel build ./index.js --global Canjs"
   },
   "repository": {
     "type": "git",
@@ -19,5 +19,8 @@
   "homepage": "https://github.com/jrainlau/canjs#readme",
   "dependencies": {
     "acorn": "^6.0.4"
+  },
+  "devDependencies": {
+    "parcel": "^1.10.3"
   }
 }

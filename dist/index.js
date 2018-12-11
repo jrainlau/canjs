@@ -18,7 +18,6 @@ function e(e,n){if(!(e instanceof n))throw new TypeError("Cannot call a class as
 },{"./es_versions":"8FE0","./scope":"cUcm"}],"H99C":[function(require,module,exports) {
 function e(e,t){if(!(e instanceof t))throw new TypeError("Cannot call a class as a function")}function t(e,t){for(var r=0;r<t.length;r++){var n=t[r];n.enumerable=n.enumerable||!1,n.configurable=!0,"value"in n&&(n.writable=!0),Object.defineProperty(e,n.key,n)}}function r(e,r,n){return r&&t(e.prototype,r),n&&t(e,n),e}var n=require("acorn"),a=n.Parser,i=require("./iterator"),o=require("./scope"),u=function(){function t(){var r=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"",n=arguments.length>1&&void 0!==arguments[1]?arguments[1]:{};e(this,t),this.code=r,this.extraDeclaration=n,this.ast=a.parse(r),this.nodeIterator=null,this.init()}return r(t,[{key:"init",value:function(){var e=this,t=new o("function");Object.keys(this.extraDeclaration).forEach(function(r){t.addDeclaration(r,e.extraDeclaration[r])}),this.nodeIterator=new i(null,t)}},{key:"run",value:function(){return this.nodeIterator.traverse(this.ast)}}]),t}();module.exports=u;
 },{"acorn":"Heqi","./iterator":"bAhp","./scope":"cUcm"}],"Focm":[function(require,module,exports) {
-var global = arguments[3];
-var r=arguments[3],a=require("./src");try{window.Canjs=a}catch(c){}try{r.Canjs=a}catch(c){}
-},{"./src":"H99C"}]},{},["Focm"], null)
+var r=require("./src");module.exports=r;
+},{"./src":"H99C"}]},{},["Focm"], "Canjs")
 //# sourceMappingURL=/index.map

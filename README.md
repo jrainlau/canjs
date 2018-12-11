@@ -5,10 +5,17 @@
 Relate article: [《
 前端与编译原理——用JS写一个JS解释器》](http://sfau.lt/b5bkvoY)
 
+## Install
+
+``` sh
+git clone https://github.com/jrainlau/canjs.git
+```
+
 ## Usage
 It's fine to run the JS code in string directly.
+
 ```javascript
-const Canjs = require('Canjs')
+const Canjs = require('./dist/index.js')
 
 new Canjs(`
   console.log('Hello World!')
@@ -16,8 +23,9 @@ new Canjs(`
 ```
 
 `CanJS` uses ES5 standard library, but you can also provide custom variables to it:
+
 ```javascript
-const Canjs = require('Canjs')
+const Canjs = require('./dist/index.js')
 
 const wx = {
   name: 'wx'
