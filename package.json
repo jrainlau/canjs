@@ -2,7 +2,7 @@
   "name": "canjs",
   "version": "1.0.0",
   "description": "CanJS is a javascript interpreter, which can run JS code in JS.",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "parcel build ./src/index.js --global Canjs",
     "build:demo": "parcel build ./demo.js -o demo.js"

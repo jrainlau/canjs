@@ -77,7 +77,9 @@ const NodeHandler = {
 
     // 处理块级节点内的每一个节点
     for (const node of nodeIterator.node.body) {
-      if (node.type === 'VariableDeclaration' && node.kind === 'var') {
+      if (node.type === 'FunctionDeclaration') {
+        nodeIterator.traverse(node, { scope })
+      } else if (node.type === 'VariableDeclaration' && node.kind === 'var') {
         for (const declaration of node.declarations) {
           if (declaration.init) {
             scope.declare(declaration.id.name, nodeIterator.traverse(declaration.init, { scope }), node.kind)
@@ -85,8 +87,6 @@ const NodeHandler = {
             scope.declare(declaration.id.name, undefined, node.kind)
           }
         }
-      } else if (node.type === 'FunctionDeclaration') {
-        nodeIterator.traverse(node, { scope })
       }
     }
 
