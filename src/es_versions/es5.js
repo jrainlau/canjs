@@ -250,6 +250,15 @@ const NodeHandler = {
   },
   LogicalExpression (nodeIterator) {
     const a = nodeIterator.traverse(nodeIterator.node.left)
+    if (a) {
+      if (nodeIterator.node.operator == '||') {
+        return true;
+      }
+    }
+    else if (nodeIterator.node.operator == '&&') {
+      return false;
+    }
+    
     const b = nodeIterator.traverse(nodeIterator.node.right)
     return NodeHandler.LogicalExpressionOperatortraverseMap[nodeIterator.node.operator](a, b)
   },
