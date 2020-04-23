@@ -148,14 +148,21 @@ const NodeHandler = {
   },
 
   UpdateExpression (nodeIterator) {
-    let { value } = nodeIterator.scope.get(nodeIterator.node.argument.name)
-    if (nodeIterator.node.operator === '++') {
-      nodeIterator.node.prefix ? ++value : value++
+    const { operator, prefix } = nodeIterator.node
+    const { name } = nodeIterator.node.argument
+    let val = nodeIterator.scope.get(name).value
+
+    operator === "++" ? nodeIterator.scope.set(name, val + 1) : nodeIterator.scope.set(name, val - 1)
+
+    if (operator === "++" && prefix) {
+      return ++val
+    } else if (operator === "++" && !prefix) {
+      return val++
+    } else if (operator === "--" && prefix) {
+      return --val
     } else {
-      nodeIterator.node.prefix ? --value : value--
+      return val--
     }
-    nodeIterator.scope.set(nodeIterator.node.argument.name, value)
-    return value
   },
   AssignmentExpressionOperatortraverseMap: {
     '=': (value, v) => value instanceof MemberValue ? value.obj[value.prop] = v : value.value = v,
